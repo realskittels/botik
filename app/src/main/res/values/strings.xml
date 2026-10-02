@@ -7,10 +7,9 @@
     <string name="translate_short">✨ Перевод</string>
     <string name="undo_translation">Вернуть оригинал</string>
 
-    <string name="bar_hint">Пишите по-русски — перевод на %1$s будет здесь</string>
-    <string name="bar_hint_no_key">Пишите по-русски и нажмите «Перевод»</string>
+    <string name="bar_hint">Пишите по-русски и жмите «Перевод» → %1$s</string>
     <string name="bar_nothing">Сначала напишите текст</string>
-    <string name="bar_translating">Перевожу…</string>
+    <string name="bar_translating">Перевожу (%1$s)…</string>
     <string name="bar_tap_insert">Нажмите на текст, чтобы вставить</string>
     <string name="bar_disabled">Перевод отключён в поле пароля</string>
     <string name="bar_replaced">Готово ✓ — ↶ вернёт оригинал</string>
@@ -29,8 +28,15 @@
     <string name="setup_not_enabled">Шаг 1: включите «Botik» в списке клавиатур.</string>
     <string name="setup_not_selected">Шаг 2: выберите Botik как текущую клавиатуру.</string>
     <string name="setup_done">Готово ✓ Botik — ваша клавиатура.</string>
-    <string name="claude_title">2. Перевод уровня носителя (Claude)</string>
-    <string name="claude_help">Вставьте API-ключ Anthropic — его можно получить на console.anthropic.com. Ключ хранится только на телефоне. Без ключа работает офлайн-черновик.</string>
+    <string name="provider_title">2. Сервис перевода</string>
+    <string name="provider">Чем переводить по кнопке «Перевод»</string>
+    <string name="help_free">Работает сразу, без регистрации и ключей. Текст переводит нейросеть через публичный сервис Pollinations AI с инструкцией «пиши как носитель языка»; если он не ответит, используется бесплатный Google Переводчик.\n\n⚠️ Это анонимные публичные сервисы без гарантий: текст уходит им, а они могут ограничивать частоту запросов. Не переводите так пароли, номера карт и другие секреты.</string>
+    <string name="help_gemini">Нейросеть Google Gemini, перевод уровня носителя. Ключ бесплатный: войдите в Google на aistudio.google.com/apikey и нажмите «Create API key». На бесплатном тарифе Google может использовать запросы для улучшения своих моделей. В некоторых странах сервис недоступен.</string>
+    <string name="help_deepl">DeepL: очень естественный перевод, особенно на европейские языки. Бесплатный ключ (500 000 символов в месяц) — на deepl.com/pro-api, тариф «DeepL API Free»; такие ключи заканчиваются на «:fx». Для языков, которых нет в DeepL, используется бесплатный режим.</string>
+    <string name="help_claude">Claude от Anthropic: самый естественный перевод. Ключ платный, его можно получить на console.anthropic.com. Ключ хранится только на телефоне. В некоторых странах сервис недоступен.</string>
+    <string name="help_offline">Перевод на самом телефоне через Google ML Kit: бесплатно, без интернета, текст никуда не уходит. Звучит проще, чем у нейросетей. Модель (~30 МБ на язык) скачается при первом переводе.</string>
+    <string name="gemini_key_hint">Ключ Gemini (AIza…)</string>
+    <string name="deepl_key_hint">Ключ DeepL (…:fx)</string>
     <string name="claude_key_hint">API-ключ Claude (sk-ant-…)</string>
     <string name="claude_model">Модель</string>
     <string name="target_language">Язык перевода по умолчанию</string>

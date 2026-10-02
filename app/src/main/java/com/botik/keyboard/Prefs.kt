@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import com.botik.keyboard.translate.ClaudeModel
 import com.botik.keyboard.translate.Language
 import com.botik.keyboard.translate.Languages
+import com.botik.keyboard.translate.Provider
 import com.botik.keyboard.translate.TranslationStyle
 
 class Prefs(context: Context) {
@@ -14,6 +15,20 @@ class Prefs(context: Context) {
     var apiKey: String
         get() = raw.getString(KEY_API, "").orEmpty().trim()
         set(v) = raw.edit().putString(KEY_API, v.trim()).apply()
+
+    /** Defaults to Claude for users who set a Claude key before providers existed. */
+    var provider: Provider
+        get() = Provider.from(raw.getString(KEY_PROVIDER, null))
+            ?: if (apiKey.isNotEmpty()) Provider.CLAUDE else Provider.FREE
+        set(v) = raw.edit().putString(KEY_PROVIDER, v.id).apply()
+
+    var geminiKey: String
+        get() = raw.getString(KEY_GEMINI, "").orEmpty().trim()
+        set(v) = raw.edit().putString(KEY_GEMINI, v.trim()).apply()
+
+    var deeplKey: String
+        get() = raw.getString(KEY_DEEPL, "").orEmpty().trim()
+        set(v) = raw.edit().putString(KEY_DEEPL, v.trim()).apply()
 
     var model: ClaudeModel
         get() = ClaudeModel.from(raw.getString(KEY_MODEL, null))
@@ -69,6 +84,9 @@ class Prefs(context: Context) {
 
     companion object {
         const val KEY_API = "api_key"
+        const val KEY_PROVIDER = "provider"
+        const val KEY_GEMINI = "gemini_key"
+        const val KEY_DEEPL = "deepl_key"
         const val KEY_MODEL = "model"
         const val KEY_STYLE = "style"
         const val KEY_TARGET = "target"

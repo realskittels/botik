@@ -62,3 +62,16 @@ enum class TranslationStyle(val id: String) {
         fun from(id: String?): TranslationStyle = entries.firstOrNull { it.id == id } ?: AUTO
     }
 }
+
+/** Where the "✨ Перевод" button sends text. */
+enum class Provider(val id: String, val title: String, val shortName: String) {
+    FREE("free", "Бесплатно: нейросеть Pollinations AI + Google, без ключа", "бесплатно"),
+    GEMINI("gemini", "Google Gemini: бесплатный ключ", "Gemini"),
+    DEEPL("deepl", "DeepL: бесплатный ключ", "DeepL"),
+    CLAUDE("claude", "Claude: свой ключ, максимальное качество", "Claude"),
+    OFFLINE("offline", "Только офлайн: на телефоне, без интернета", "офлайн");
+
+    companion object {
+        fun from(id: String?): Provider? = entries.firstOrNull { it.id == id }
+    }
+}

@@ -5,21 +5,24 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: 17
 
       # ubuntu-latest ships the Android SDK; AGP installs any missing platform itself.
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
 
       # Optional: add repository secrets KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS and
       # KEY_PASSWORD so every build is signed with the same key and updates install in place.
@@ -30,6 +33,15 @@ jobs:
         run: |
           echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
           echo "BOTIK_KEYSTORE_PATH=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+
+      # Without signing secrets, keep the same debug key between runs so a new APK
+      # installs over the old one (the cache expires after ~7 days without builds).
+      - name: Reuse debug signing key
+        if: env.BOTIK_KEYSTORE_PATH == ''
+        uses: actions/cache@v6
+        with:
+          path: ~/.android/debug.keystore
+          key: botik-debug-keystore
 
       - name: Unit tests
         run: ./gradlew --no-daemon testDebugUnitTest
@@ -44,7 +56,22 @@ jobs:
       - name: Rename APK
         run: cp app/build/outputs/apk/release/app-release.apk botik-keyboard.apk
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: botik-keyboard-apk
           path: botik-keyboard.apk
+
+      # Publishes the APK as the latest GitHub Release, so it is always at
+      # https://github.com/<owner>/<repo>/releases/latest/download/botik-keyboard.apk
+      - name: Publish release
+        if: github.event_name != 'pull_request'
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: v1.1.${{ github.run_number }}
+          name: Botik ${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          make_latest: true
+          files: botik-keyboard.apk
+          body: |
+            Установка: скачайте botik-keyboard.apk ниже и откройте его на телефоне.
+            Коммит: ${{ github.sha }}

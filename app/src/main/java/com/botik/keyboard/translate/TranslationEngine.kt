@@ -7,8 +7,8 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 /**
- * Glue between the keyboard UI and the translators: runs Claude off the main thread,
- * delivers streamed text back on the main thread, cancels stale requests and caches results.
+ * Glue between the keyboard UI and the translators: runs the chosen provider off the main
+ * thread, delivers results back on the main thread, cancels stale requests and caches results.
  */
 class TranslationEngine(private val prefs: Prefs) {
 
@@ -25,22 +25,26 @@ class TranslationEngine(private val prefs: Prefs) {
     private val cache = TranslationCache()
     private var claude: ClaudeTranslator? = null
     private var claudeKey: String? = null
-    private var current: ClaudeTranslator.Call? = null
+    /** Cancels the request in flight, whichever translator runs it. */
+    private var current: (() -> Unit)? = null
 
     val offline = OfflineTranslator()
 
-    val hasApiKey: Boolean get() = prefs.apiKey.isNotEmpty()
+    val provider: Provider get() = prefs.provider
+
+    /** Identifies the provider (and Claude model) in cache keys. */
+    private fun engineId(p: Provider): String = if (p == Provider.CLAUDE) prefs.model.id else p.id
 
     fun cached(text: String, target: Language): String? =
-        cache.get(TranslationCache.key(prefs.model.id, prefs.style, target, text))
+        cache.get(TranslationCache.key(engineId(provider), prefs.style, target, text))
 
-    /** Creates (or reuses) the client so the first translation does not pay for setup. */
+    /** Creates (or reuses) the Claude client so the first translation does not pay for setup. */
     fun warmUp() {
-        if (hasApiKey) executor.execute { translator() }
+        if (provider == Provider.CLAUDE && prefs.apiKey.isNotEmpty()) executor.execute { claude() }
     }
 
     @Synchronized
-    private fun translator(): ClaudeTranslator {
+    private fun claude(): ClaudeTranslator {
         val key = prefs.apiKey
         val model = prefs.model
         val existing = claude
@@ -54,38 +58,96 @@ class TranslationEngine(private val prefs: Prefs) {
 
     fun translate(text: String, target: Language, callback: Callback) {
         cancel()
+        val p = provider
         val style = prefs.style
-        val cacheKey = TranslationCache.key(prefs.model.id, style, target, text)
+        val cacheKey = TranslationCache.key(engineId(p), style, target, text)
         cache.get(cacheKey)?.let {
             callback.onDone(it)
             return
         }
-        if (!hasApiKey) {
-            callback.onError("Добавьте API-ключ Claude в приложении Botik")
+
+        val missingKey = when (p) {
+            Provider.CLAUDE -> prefs.apiKey.isEmpty()
+            Provider.GEMINI -> prefs.geminiKey.isEmpty()
+            Provider.DEEPL -> prefs.deeplKey.isEmpty()
+            Provider.FREE, Provider.OFFLINE -> false
+        }
+        if (missingKey) {
+            callback.onError("Добавьте ключ ${p.shortName} в приложении Botik")
             return
         }
-        val call = ClaudeTranslator.Call()
-        current = call
+        if (p == Provider.OFFLINE) {
+            translateOffline(text, target, cacheKey, callback)
+            return
+        }
+
+        var cancelled = false
+        val claudeCall = ClaudeTranslator.Call()
+        val httpCall = HttpCall()
+        current = {
+            cancelled = true
+            claudeCall.cancel()
+            httpCall.cancel()
+        }
         executor.execute {
             try {
-                val result = translator().translate(text, target, style, call) { partial ->
-                    main.post { if (!call.cancelled) callback.onPartial(partial) }
+                val result = when (p) {
+                    Provider.CLAUDE -> claude().translate(text, target, style, claudeCall) { partial ->
+                        main.post { if (!cancelled) callback.onPartial(partial) }
+                    }
+                    Provider.GEMINI -> GeminiTranslator.translate(prefs.geminiKey, text, target, style, httpCall)
+                    Provider.DEEPL ->
+                        if (DeepLTranslator.supports(target)) {
+                            DeepLTranslator.translate(prefs.deeplKey, text, target, style, httpCall)
+                        } else {
+                            // DeepL lacks some languages (e.g. Kazakh); use the free engine for those.
+                            FreeTranslator.translate(text, target, style, httpCall)
+                        }
+                    Provider.FREE, Provider.OFFLINE -> FreeTranslator.translate(text, target, style, httpCall)
                 }
-                if (call.cancelled) return@execute
+                if (claudeCall.cancelled || httpCall.cancelled) return@execute
                 if (result.isBlank()) {
-                    main.post { if (!call.cancelled) callback.onError("Пустой ответ, попробуйте ещё раз") }
+                    main.post { if (!cancelled) callback.onError("Пустой ответ, попробуйте ещё раз") }
                     return@execute
                 }
                 cache.put(cacheKey, result)
-                main.post { if (!call.cancelled) callback.onDone(result) }
+                main.post { if (!cancelled) callback.onDone(result) }
             } catch (e: TranslationException) {
-                main.post { if (!call.cancelled) callback.onError(e.message ?: "Ошибка перевода") }
+                main.post { if (!cancelled) callback.onError(e.message ?: "Ошибка перевода") }
+            } catch (e: Exception) {
+                main.post { if (!cancelled) callback.onError("Не удалось перевести: ${e.message}") }
+            }
+        }
+    }
+
+    /** ML Kit on the phone. The user asked for it explicitly, so the model may download on mobile data. */
+    private fun translateOffline(text: String, target: Language, cacheKey: String, callback: Callback) {
+        if (!offline.isSupported(target)) {
+            callback.onError("Для языка «${target.nativeName}» нет офлайн-модели")
+            return
+        }
+        var cancelled = false
+        current = { cancelled = true }
+        offline.prepare(target, wifiOnly = false) { ready ->
+            if (cancelled) return@prepare
+            if (!ready) {
+                callback.onError("Не удалось скачать офлайн-модель, нужен интернет один раз")
+                return@prepare
+            }
+            offline.translate(text, target) { result ->
+                if (cancelled) return@translate
+                if (result.isNullOrBlank()) {
+                    callback.onError("Офлайн-перевод не удался")
+                } else {
+                    cache.put(cacheKey, result)
+                    callback.onDone(result)
+                }
             }
         }
     }
 
     fun cancel() {
-        current?.cancel()
+        current?.invoke()
         current = null
     }
 

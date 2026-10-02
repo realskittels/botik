@@ -15,6 +15,7 @@ import com.botik.keyboard.R
 import com.botik.keyboard.translate.ClaudeModel
 import com.botik.keyboard.translate.Languages
 import com.botik.keyboard.translate.OfflineTranslator
+import com.botik.keyboard.translate.Provider
 import com.botik.keyboard.translate.TranslationStyle
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.button.MaterialButtonToggleGroup
@@ -45,7 +46,7 @@ class SettingsActivity : AppCompatActivity() {
         btnEnable.setOnClickListener { startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS)) }
         btnChoose.setOnClickListener { imm().showInputMethodPicker() }
 
-        bindClaude()
+        bindTranslation()
         bindOffline()
         bindLook()
     }
@@ -83,10 +84,20 @@ class SettingsActivity : AppCompatActivity() {
         btnChoose.visibility = if (enabled && !selected) View.VISIBLE else View.GONE
     }
 
-    private fun bindClaude() {
-        val apiKey = findViewById<TextInputEditText>(R.id.api_key)
-        apiKey.setText(prefs.apiKey)
-        apiKey.doAfterTextChanged { prefs.apiKey = it?.toString().orEmpty() }
+    private fun bindTranslation() {
+        val providers = Provider.entries
+        val provider = findViewById<MaterialAutoCompleteTextView>(R.id.provider)
+        provider.setAdapter(ArrayAdapter(this, android.R.layout.simple_list_item_1, providers.map { it.title }))
+        provider.setText(prefs.provider.title, false)
+        provider.setOnItemClickListener { _, _, position, _ ->
+            prefs.provider = providers[position]
+            showProvider(providers[position])
+        }
+        showProvider(prefs.provider)
+
+        bindKey(R.id.api_key, prefs.apiKey) { prefs.apiKey = it }
+        bindKey(R.id.gemini_key, prefs.geminiKey) { prefs.geminiKey = it }
+        bindKey(R.id.deepl_key, prefs.deeplKey) { prefs.deeplKey = it }
 
         val models = ClaudeModel.entries
         val model = findViewById<MaterialAutoCompleteTextView>(R.id.model)
@@ -125,6 +136,28 @@ class SettingsActivity : AppCompatActivity() {
         val autoReplace = findViewById<MaterialSwitch>(R.id.auto_replace)
         autoReplace.isChecked = prefs.autoReplace
         autoReplace.setOnCheckedChangeListener { _, v -> prefs.autoReplace = v }
+    }
+
+    private fun bindKey(id: Int, value: String, save: (String) -> Unit) {
+        val field = findViewById<TextInputEditText>(id)
+        field.setText(value)
+        field.doAfterTextChanged { save(it?.toString().orEmpty()) }
+    }
+
+    /** Shows the help text and key fields for the chosen provider only. */
+    private fun showProvider(p: Provider) {
+        findViewById<TextView>(R.id.provider_help).setText(
+            when (p) {
+                Provider.FREE -> R.string.help_free
+                Provider.GEMINI -> R.string.help_gemini
+                Provider.DEEPL -> R.string.help_deepl
+                Provider.CLAUDE -> R.string.help_claude
+                Provider.OFFLINE -> R.string.help_offline
+            },
+        )
+        findViewById<View>(R.id.claude_group).visibility = if (p == Provider.CLAUDE) View.VISIBLE else View.GONE
+        findViewById<View>(R.id.gemini_group).visibility = if (p == Provider.GEMINI) View.VISIBLE else View.GONE
+        findViewById<View>(R.id.deepl_group).visibility = if (p == Provider.DEEPL) View.VISIBLE else View.GONE
     }
 
     private fun bindOffline() {

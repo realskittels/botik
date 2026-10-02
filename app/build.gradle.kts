@@ -12,8 +12,15 @@ android {
         // Poco M5 ships with Android 12 (MIUI 13) and updates to Android 13/14.
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        // CI builds number themselves so every new APK installs as an update.
+        val build = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 1
+        versionCode = build
+        versionName = "1.1.$build"
+
+        // Poco M5 and practically every phone since 2015 is ARM; skipping x86 halves the APK.
+        ndk {
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+        }
     }
 
     signingConfigs {
@@ -78,6 +85,9 @@ dependencies {
 
     // Claude API (native-quality translation)
     implementation("com.anthropic:anthropic-java:2.68.0")
+
+    // Free / Gemini / DeepL translators
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
     // On-device draft translation (instant, offline)
     implementation("com.google.mlkit:translate:17.0.3")

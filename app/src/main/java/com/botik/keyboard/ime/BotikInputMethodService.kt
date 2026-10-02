@@ -484,9 +484,8 @@ class BotikInputMethodService : InputMethodService(), KeyboardView.Listener {
         preview.text = when {
             !translationAllowed -> getString(R.string.bar_disabled)
             state == BarState.IDLE ->
-                if (engine.hasApiKey) getString(R.string.bar_hint, prefs.target.nativeName)
-                else getString(R.string.bar_hint_no_key)
-            state == BarState.TRANSLATING -> getString(R.string.bar_translating)
+                getString(R.string.bar_hint, prefs.target.nativeName)
+            state == BarState.TRANSLATING -> getString(R.string.bar_translating, engine.provider.shortName)
             state == BarState.REPLACED -> getString(R.string.bar_replaced)
             else -> text.orEmpty()
         }

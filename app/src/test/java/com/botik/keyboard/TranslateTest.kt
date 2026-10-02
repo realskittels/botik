@@ -2,6 +2,8 @@ package com.botik.keyboard
 
 import com.botik.keyboard.translate.ClaudeModel
 import com.botik.keyboard.translate.ClaudeTranslator
+import com.botik.keyboard.translate.DeepLTranslator
+import com.botik.keyboard.translate.FreeTranslator
 import com.botik.keyboard.translate.Languages
 import com.botik.keyboard.translate.TranslationCache
 import com.botik.keyboard.translate.TranslationStyle
@@ -51,5 +53,23 @@ class TranslateTest {
     @Test
     fun languageCodesAreUnique() {
         assertEquals(Languages.ALL.size, Languages.ALL.map { it.code }.toSet().size)
+    }
+
+    @Test
+    fun freeOutputDropsSponsorBlockAndEchoedTags() {
+        val raw = "<text>\nKeep your chin up!\n</text>\n\n---\n🌸 Ad 🌸 Powered by Pollinations.AI"
+        assertEquals("Keep your chin up!", FreeTranslator.cleanLlmOutput(raw))
+    }
+
+    @Test
+    fun freeOutputKeepsUserHorizontalRules() {
+        val text = "Line one\n---\nLine two"
+        assertEquals(text, FreeTranslator.cleanLlmOutput(text))
+    }
+
+    @Test
+    fun deeplSkipsLanguagesItDoesNotHave() {
+        assertTrue(DeepLTranslator.supports(Languages.find("de")))
+        assertTrue(!DeepLTranslator.supports(Languages.find("kk")))
     }
 }
