@@ -21,3 +21,5 @@
 -dontwarn java.beans.**
 -dontwarn javax.annotation.**
 -dontwarn kotlin.reflect.jvm.internal.**
+# Only referenced by the SDK's structured-outputs helpers, which the app does not use.
+-dontwarn java.lang.reflect.AnnotatedType
