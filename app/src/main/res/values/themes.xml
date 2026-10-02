@@ -12,13 +12,13 @@
         <item name="cardCornerRadius">20dp</item>
     </style>
 
-    <style name="Botik.CardTitle">
+    <style name="Botik.CardTitle" parent="">
         <item name="android:textSize">17sp</item>
         <item name="android:textStyle">bold</item>
         <item name="android:textColor">?attr/colorOnSurface</item>
     </style>
 
-    <style name="Botik.Label">
+    <style name="Botik.Label" parent="">
         <item name="android:layout_marginTop">12dp</item>
         <item name="android:layout_marginBottom">4dp</item>
         <item name="android:textSize">13sp</item>
