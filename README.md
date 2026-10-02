@@ -31,10 +31,10 @@
 
 ## Установка на Poco M5
 
-### ⬇️ [Скачать botik-keyboard.apk](https://github.com/realskittels/botik/releases/latest/download/botik-keyboard.apk)
+### ⬇️ [Скачать botik-keyboard.apk](https://github.com/realskittels/botik/raw/claude/poco-m5-keyboard-translation-jz8ldf/botik-keyboard.apk)
 
-Ссылка всегда ведёт на последнюю версию: каждая сборка публикуется в
-[Releases](https://github.com/realskittels/botik/releases) автоматически.
+Файл `botik-keyboard.apk` лежит прямо в корне репозитория и обновляется после каждой сборки.
+Ещё одна копия — в [Releases](https://github.com/realskittels/botik/releases/latest).
 
 1. Откройте ссылку выше на телефоне и скачайте APK.
 2. Откройте файл. MIUI попросит разрешить установку из неизвестных источников для браузера

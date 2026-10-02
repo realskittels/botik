@@ -61,6 +61,19 @@ jobs:
           name: botik-keyboard-apk
           path: botik-keyboard.apk
 
+      # Puts the APK in the repository root so it is visible on the main page.
+      # GITHUB_TOKEN pushes do not start new workflow runs, so this cannot loop.
+      - name: Commit APK to repository
+        if: github.event_name == 'push'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin "$GITHUB_REF_NAME"
+          git checkout -B "$GITHUB_REF_NAME" "origin/$GITHUB_REF_NAME"
+          git add -f botik-keyboard.apk
+          git diff --cached --quiet || git commit -m "Update botik-keyboard.apk (build ${{ github.run_number }}) [skip ci]"
+          git push origin "HEAD:$GITHUB_REF_NAME"
+
       # Publishes the APK as the latest GitHub Release, so it is always at
       # https://github.com/<owner>/<repo>/releases/latest/download/botik-keyboard.apk
       - name: Publish release
