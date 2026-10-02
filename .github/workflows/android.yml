@@ -17,7 +17,7 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - uses: android-actions/setup-android@v3
+      # ubuntu-latest ships the Android SDK; AGP installs any missing platform itself.
 
       - uses: gradle/actions/setup-gradle@v4
 
