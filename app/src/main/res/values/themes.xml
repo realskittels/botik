@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Botik" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/botik_primary</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorSecondary">@color/botik_secondary</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+    </style>
+
+    <style name="Botik.Card" parent="Widget.Material3.CardView.Filled">
+        <item name="android:layout_marginTop">16dp</item>
+        <item name="cardCornerRadius">20dp</item>
+    </style>
+
+    <style name="Botik.CardTitle">
+        <item name="android:textSize">17sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
+    </style>
+
+    <style name="Botik.Label">
+        <item name="android:layout_marginTop">12dp</item>
+        <item name="android:layout_marginBottom">4dp</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:textColor">?attr/colorOnSurfaceVariant</item>
+    </style>
+</resources>

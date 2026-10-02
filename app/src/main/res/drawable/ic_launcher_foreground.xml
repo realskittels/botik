@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A speech bubble with keyboard keys and a translation arrow, inside the 66dp safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- bubble -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M30,32h48a6,6 0,0 1,6 6v28a6,6 0,0 1,-6 6h-30l-10,9v-9h-8a6,6 0,0 1,-6 -6v-28a6,6 0,0 1,6 -6z" />
+    <!-- keys -->
+    <path
+        android:fillColor="#7C5CFF"
+        android:pathData="M33,40h8v7h-8zM44,40h8v7h-8zM55,40h8v7h-8zM66,40h9v7h-9zM33,50h8v7h-8zM44,50h8v7h-8zM55,50h8v7h-8zM66,50h9v7h-9zM38,60h32v6h-32z" />
+    <!-- sparkle -->
+    <path
+        android:fillColor="#FFD54F"
+        android:pathData="M80,22l2.2,5.8l5.8,2.2l-5.8,2.2l-2.2,5.8l-2.2,-5.8l-5.8,-2.2l5.8,-2.2z" />
+</vector>

@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Botik Клавиатура</string>
+    <string name="ime_name">Botik — клавиатура-переводчик</string>
+    <string name="ime_subtype_ru">Русский</string>
+    <string name="translate">Перевести</string>
+    <string name="translate_short">✨ Перевод</string>
+    <string name="undo_translation">Вернуть оригинал</string>
+
+    <string name="bar_hint">Пишите по-русски — перевод на %1$s будет здесь</string>
+    <string name="bar_hint_no_key">Пишите по-русски и нажмите «Перевод»</string>
+    <string name="bar_nothing">Сначала напишите текст</string>
+    <string name="bar_translating">Перевожу…</string>
+    <string name="bar_tap_insert">Нажмите на текст, чтобы вставить</string>
+    <string name="bar_disabled">Перевод отключён в поле пароля</string>
+    <string name="bar_replaced">Готово ✓ — ↶ вернёт оригинал</string>
+
+    <string name="panel_style">Стиль перевода</string>
+    <string name="panel_recent">Недавние</string>
+    <string name="panel_all">Все языки</string>
+    <string name="style_auto">Как в оригинале</string>
+    <string name="style_casual">Дружески</string>
+    <string name="style_formal">Официально</string>
+    <string name="settings_title">Botik ✨</string>
+    <string name="settings_subtitle">Клавиатура, которая переводит с русского как носитель языка</string>
+    <string name="setup_title">1. Подключите клавиатуру</string>
+    <string name="setup_enable">Включить Botik в настройках</string>
+    <string name="setup_choose">Выбрать Botik как клавиатуру</string>
+    <string name="setup_not_enabled">Шаг 1: включите «Botik» в списке клавиатур.</string>
+    <string name="setup_not_selected">Шаг 2: выберите Botik как текущую клавиатуру.</string>
+    <string name="setup_done">Готово ✓ Botik — ваша клавиатура.</string>
+    <string name="claude_title">2. Перевод уровня носителя (Claude)</string>
+    <string name="claude_help">Вставьте API-ключ Anthropic — его можно получить на console.anthropic.com. Ключ хранится только на телефоне. Без ключа работает офлайн-черновик.</string>
+    <string name="claude_key_hint">API-ключ Claude (sk-ant-…)</string>
+    <string name="claude_model">Модель</string>
+    <string name="target_language">Язык перевода по умолчанию</string>
+    <string name="style_auto_short">Авто</string>
+    <string name="auto_replace">Сразу заменять текст переводом</string>
+    <string name="offline_title">3. Мгновенный офлайн-черновик</string>
+    <string name="offline_help">Пока вы печатаете, перевод появляется прямо над клавиатурой без интернета. Модель (~30 МБ на язык) скачивается один раз; клавиатура сама качает её только по Wi-Fi.</string>
+    <string name="live_preview">Показывать черновик перевода при наборе</string>
+    <string name="offline_download">Скачать офлайн-модель для выбранного языка</string>
+    <string name="offline_downloading">Скачиваю…</string>
+    <string name="offline_ready">Офлайн-модель готова ✓</string>
+    <string name="offline_failed">Не удалось скачать. Проверьте интернет.</string>
+    <string name="offline_unsupported">Для этого языка офлайн-модели нет — работает только Claude.</string>
+    <string name="look_title">Внешний вид</string>
+    <string name="theme">Тема</string>
+    <string name="theme_system">Как в системе</string>
+    <string name="theme_dark">Тёмная</string>
+    <string name="theme_light">Светлая</string>
+    <string name="key_height">Высота клавиш</string>
+    <string name="haptics">Виброотклик</string>
+    <string name="sound">Звук нажатий</string>
+    <string name="try_here">Попробуйте здесь</string>
+</resources>

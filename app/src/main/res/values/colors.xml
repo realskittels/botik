@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="botik_primary">#6A4DF5</color>
+    <color name="botik_secondary">#2F95E8</color>
+    <color name="botik_icon_bg_start">#7C5CFF</color>
+    <color name="botik_icon_bg_end">#3FA9F5</color>
+</resources>
