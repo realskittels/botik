@@ -59,4 +59,19 @@
     <string name="haptics">Виброотклик</string>
     <string name="sound">Звук нажатий</string>
     <string name="try_here">Попробуйте здесь</string>
+    <string name="emoji">Эмодзи</string>
+    <string name="clipboard">Буфер обмена</string>
+    <string name="clip_empty">Скопируйте текст в любом приложении — он появится здесь.\nНажмите, чтобы вставить; удерживайте, чтобы закрепить 📌.</string>
+    <string name="clip_select_all">Выделить всё</string>
+    <string name="clip_copy">Копировать</string>
+    <string name="clip_cut">Вырезать</string>
+    <string name="clip_paste">Вставить</string>
+    <string name="clip_clear">Очистить</string>
+    <string name="clip_disabled">История буфера выключена в настройках Botik.</string>
+    <string name="emoji_recent">Недавние</string>
+    <string name="number_row">Ряд цифр над буквами</string>
+    <string name="clipboard_history">Запоминать скопированное (буфер обмена)</string>
+    <string name="features_title">Удобства</string>
+    <string name="features_help">Свайп по пробелу двигает курсор, свайп влево с ⌫ удаляет слово, удержание пробела — выбор клавиатуры, двойной пробел ставит точку. Длинное нажатие на букву — цифры, ё и ъ.</string>
+    <string name="open_settings">⚙ Настройки Botik</string>
 </resources>

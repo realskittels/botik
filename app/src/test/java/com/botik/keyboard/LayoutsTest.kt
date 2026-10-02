@@ -55,4 +55,13 @@ class LayoutsTest {
         val ye = KeyboardLayouts.russian.rows.flatten().first { it.label == "е" }
         assertEquals("ё", ye.alt)
     }
+
+    @Test
+    fun numberRowAddsDigitsToLettersOnly() {
+        val ru = KeyboardLayouts.byId(KeyboardLayouts.RU, numberRow = true)
+        assertEquals(5, ru.rows.size)
+        assertEquals("1234567890", ru.rows[0].joinToString("") { it.label })
+        assertEquals(11f, ru.columns)
+        assertEquals(4, KeyboardLayouts.byId(KeyboardLayouts.SYMBOLS, numberRow = true).rows.size)
+    }
 }

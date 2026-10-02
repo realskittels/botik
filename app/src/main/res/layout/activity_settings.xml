@@ -342,37 +342,17 @@
                     android:layout_height="wrap_content"
                     android:text="@string/theme" />
 
-                <com.google.android.material.button.MaterialButtonToggleGroup
-                    android:id="@+id/theme_group"
+                <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    app:selectionRequired="true"
-                    app:singleSelection="true">
+                    android:layout_height="wrap_content">
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/theme_system"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
-                        android:layout_width="0dp"
+                    <com.google.android.material.textfield.MaterialAutoCompleteTextView
+                        android:id="@+id/theme"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/theme_system" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/theme_dark"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/theme_dark" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/theme_light"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/theme_light" />
-                </com.google.android.material.button.MaterialButtonToggleGroup>
+                        android:inputType="none" />
+                </com.google.android.material.textfield.TextInputLayout>
 
                 <TextView
                     style="@style/Botik.Label"
@@ -399,6 +379,30 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="@string/sound" />
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/number_row"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/number_row" />
+
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/clipboard_history"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/clipboard_history" />
+
+                <TextView
+                    style="@style/Botik.Label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/features_title" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/features_help"
+                    android:textSize="13sp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

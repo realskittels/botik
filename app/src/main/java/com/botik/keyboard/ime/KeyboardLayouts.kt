@@ -103,10 +103,21 @@ object KeyboardLayouts {
         ),
     )
 
-    fun byId(id: String): KeyboardLayout = when (id) {
-        EN -> english
-        SYMBOLS -> symbols
-        SYMBOLS_MORE -> symbolsMore
-        else -> russian
+    private val withNumbers = HashMap<String, KeyboardLayout>()
+
+    /**
+     * @param numberRow adds a row of digits above letter layouts (symbol layouts already have one).
+     */
+    fun byId(id: String, numberRow: Boolean = false): KeyboardLayout {
+        val base = when (id) {
+            EN -> english
+            SYMBOLS -> symbols
+            SYMBOLS_MORE -> symbolsMore
+            else -> russian
+        }
+        if (!numberRow || base.id == SYMBOLS || base.id == SYMBOLS_MORE) return base
+        return withNumbers.getOrPut(base.id) {
+            KeyboardLayout(base.id, listOf(chars(DIGITS)) + base.rows)
+        }
     }
 }

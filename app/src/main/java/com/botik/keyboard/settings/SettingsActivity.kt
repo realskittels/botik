@@ -12,6 +12,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.widget.doAfterTextChanged
 import com.botik.keyboard.Prefs
 import com.botik.keyboard.R
+import com.botik.keyboard.ime.KeyboardTheme
 import com.botik.keyboard.translate.ClaudeModel
 import com.botik.keyboard.translate.Languages
 import com.botik.keyboard.translate.OfflineTranslator
@@ -182,22 +183,13 @@ class SettingsActivity : AppCompatActivity() {
     }
 
     private fun bindLook() {
-        val themeGroup = findViewById<MaterialButtonToggleGroup>(R.id.theme_group)
-        themeGroup.check(
-            when (prefs.theme) {
-                "dark" -> R.id.theme_dark
-                "light" -> R.id.theme_light
-                else -> R.id.theme_system
-            },
-        )
-        themeGroup.addOnButtonCheckedListener { _, id, checked ->
-            if (!checked) return@addOnButtonCheckedListener
-            prefs.theme = when (id) {
-                R.id.theme_dark -> "dark"
-                R.id.theme_light -> "light"
-                else -> "system"
-            }
-        }
+        // "system" first, then every named theme.
+        val themeIds = listOf("system") + KeyboardTheme.ALL.map { it.id }
+        val themeTitles = listOf(getString(R.string.theme_system)) + KeyboardTheme.ALL.map { it.title }
+        val theme = findViewById<MaterialAutoCompleteTextView>(R.id.theme)
+        theme.setAdapter(ArrayAdapter(this, android.R.layout.simple_list_item_1, themeTitles))
+        theme.setText(themeTitles[themeIds.indexOf(prefs.theme).coerceAtLeast(0)], false)
+        theme.setOnItemClickListener { _, _, position, _ -> prefs.theme = themeIds[position] }
 
         val height = findViewById<Slider>(R.id.key_height)
         height.value = (Math.round(prefs.keyHeightScale * 20f) / 20f).coerceIn(height.valueFrom, height.valueTo)
@@ -210,5 +202,13 @@ class SettingsActivity : AppCompatActivity() {
         val sound = findViewById<MaterialSwitch>(R.id.sound)
         sound.isChecked = prefs.sound
         sound.setOnCheckedChangeListener { _, v -> prefs.sound = v }
+
+        val numberRow = findViewById<MaterialSwitch>(R.id.number_row)
+        numberRow.isChecked = prefs.numberRow
+        numberRow.setOnCheckedChangeListener { _, v -> prefs.numberRow = v }
+
+        val clipboard = findViewById<MaterialSwitch>(R.id.clipboard_history)
+        clipboard.isChecked = prefs.clipboardHistory
+        clipboard.setOnCheckedChangeListener { _, v -> prefs.clipboardHistory = v }
     }
 }

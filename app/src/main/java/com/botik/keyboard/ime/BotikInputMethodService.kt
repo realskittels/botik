@@ -18,6 +18,12 @@ import android.view.KeyEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputConnection
+import android.view.inputmethod.InputMethodManager
+import android.content.Intent
+import android.text.TextUtils
+import android.widget.FrameLayout
+import android.widget.HorizontalScrollView
+import com.botik.keyboard.settings.SettingsActivity
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.ScrollView
@@ -45,8 +51,17 @@ class BotikInputMethodService : InputMethodService(), KeyboardView.Listener {
     private lateinit var keyboard: KeyboardView
     private lateinit var langPanel: ScrollView
     private lateinit var langPanelContent: LinearLayout
+    private lateinit var emojiPanel: FrameLayout
+    private lateinit var clipPanel: FrameLayout
+    private lateinit var emojiButton: TextView
+    private lateinit var clipButton: TextView
+    private lateinit var clipboardHistory: ClipboardHistory
 
-    private var theme = KeyboardTheme.DARK
+    private enum class Panel { KEYS, LANG, EMOJI, CLIP }
+    private var panel = Panel.KEYS
+    private var emojiCategory = -1
+
+    private var theme = KeyboardTheme.AMETHYST
     private var vibrator: Vibrator? = null
     private var audio: AudioManager? = null
 
@@ -84,10 +99,15 @@ class BotikInputMethodService : InputMethodService(), KeyboardView.Listener {
             getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
         }
         audio = getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+        clipboardHistory = ClipboardHistory(this).also {
+            it.enabled = prefs.clipboardHistory
+            it.start()
+        }
     }
 
     override fun onDestroy() {
         main.removeCallbacksAndMessages(null)
+        clipboardHistory.stop()
         engine.release()
         super.onDestroy()
     }
@@ -103,10 +123,16 @@ class BotikInputMethodService : InputMethodService(), KeyboardView.Listener {
         keyboard = root.findViewById(R.id.keyboard)
         langPanel = root.findViewById(R.id.lang_panel)
         langPanelContent = root.findViewById(R.id.lang_panel_content)
+        emojiPanel = root.findViewById(R.id.emoji_panel)
+        clipPanel = root.findViewById(R.id.clip_panel)
+        emojiButton = root.findViewById(R.id.btn_emoji)
+        clipButton = root.findViewById(R.id.btn_clipboard)
+        emojiButton.setOnClickListener { togglePanel(Panel.EMOJI) }
+        clipButton.setOnClickListener { togglePanel(Panel.CLIP) }
 
         keyboard.listener = this
-        keyboard.previewHeadroom = resources.displayMetrics.density * 48f
-        langChip.setOnClickListener { toggleLanguagePanel() }
+        keyboard.previewHeadroom = resources.displayMetrics.density * 44f
+        langChip.setOnClickListener { togglePanel(Panel.LANG) }
         translateButton.setOnClickListener { onTranslatePressed() }
         preview.setOnClickListener { insertOffered() }
         undoButton.setOnClickListener { undoTranslation() }
@@ -122,7 +148,8 @@ class BotikInputMethodService : InputMethodService(), KeyboardView.Listener {
         super.onStartInputView(info, restarting)
         applyTheme()
         keyboard.keyHeightScale = prefs.keyHeightScale
-        hideLanguagePanel()
+        clipboardHistory.enabled = prefs.clipboardHistory
+        showPanel(Panel.KEYS)
 
         val cls = info.inputType and InputType.TYPE_MASK_CLASS
         val variation = info.inputType and InputType.TYPE_MASK_VARIATION
@@ -231,6 +258,24 @@ class BotikInputMethodService : InputMethodService(), KeyboardView.Listener {
         setShift(next)
     }
 
+    override fun onDeleteWord() {
+        val ic = currentInputConnection ?: return
+        if (selStart != selEnd) {
+            ic.commitText("", 1)
+            return
+        }
+        val before = ic.getTextBeforeCursor(64, 0)?.toString().orEmpty()
+        var n = before.length
+        while (n > 0 && before[n - 1].isWhitespace()) n--
+        while (n > 0 && !before[n - 1].isWhitespace()) n--
+        val count = before.length - n
+        if (count > 0) ic.deleteSurroundingText(count, 0)
+    }
+
+    override fun onSpaceLongPress() {
+        (getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager).showInputMethodPicker()
+    }
+
     override fun onCursorMove(steps: Int) {
         val code = if (steps < 0) KeyEvent.KEYCODE_DPAD_LEFT else KeyEvent.KEYCODE_DPAD_RIGHT
         repeat(kotlin.math.abs(steps)) { sendDownUpKeyEvents(code) }
@@ -300,7 +345,7 @@ class BotikInputMethodService : InputMethodService(), KeyboardView.Listener {
     }
 
     private fun setLayout(id: String) {
-        keyboard.layout = KeyboardLayouts.byId(id)
+        keyboard.layout = KeyboardLayouts.byId(id, prefs.numberRow)
         keyboard.spaceLabel = when (id) {
             KeyboardLayouts.RU -> "Русский"
             KeyboardLayouts.EN -> "English"
@@ -352,7 +397,7 @@ class BotikInputMethodService : InputMethodService(), KeyboardView.Listener {
     }
 
     private fun onTranslatePressed() {
-        hideLanguagePanel()
+        showPanel(Panel.KEYS)
         if (!translationAllowed) return
         if (barState == BarState.TRANSLATING) {
             engine.cancel()
@@ -500,22 +545,212 @@ class BotikInputMethodService : InputMethodService(), KeyboardView.Listener {
         langChip.text = "RU → ${target.flag} ${target.code.uppercase()}"
     }
 
-    private fun toggleLanguagePanel() {
-        if (langPanel.visibility == View.VISIBLE) hideLanguagePanel() else showLanguagePanel()
+    private fun togglePanel(target: Panel) {
+        showPanel(if (panel == target) Panel.KEYS else target)
     }
 
-    private fun showLanguagePanel() {
-        buildLanguagePanel()
-        langPanel.layoutParams = langPanel.layoutParams.apply { height = keyboard.height }
-        langPanel.visibility = View.VISIBLE
-        keyboard.visibility = View.INVISIBLE
-        langPanel.scrollTo(0, 0)
+    /** Swaps the key grid for one of the panels; panels take at least the keyboard's height. */
+    private fun showPanel(target: Panel) {
+        if (!::keyboard.isInitialized) return
+        panel = target
+        val height = maxOf(keyboard.height, dp(230))
+        fun place(view: View, visible: Boolean) {
+            if (visible) view.layoutParams = view.layoutParams.apply { this.height = height }
+            view.visibility = if (visible) View.VISIBLE else View.GONE
+        }
+        when (target) {
+            Panel.LANG -> buildLanguagePanel()
+            Panel.EMOJI -> buildEmojiPanel()
+            Panel.CLIP -> buildClipPanel()
+            Panel.KEYS -> Unit
+        }
+        place(langPanel, target == Panel.LANG)
+        place(emojiPanel, target == Panel.EMOJI)
+        place(clipPanel, target == Panel.CLIP)
+        keyboard.visibility = if (target == Panel.KEYS) View.VISIBLE else View.INVISIBLE
+        if (target == Panel.KEYS) {
+            // Panels may be taller than the keys; let the window shrink back.
+            keyboard.requestLayout()
+        } else {
+            keyboard.cancelAllPointers()
+        }
+        if (target == Panel.LANG) langPanel.scrollTo(0, 0)
+        emojiButton.background = if (target == Panel.EMOJI) roundedBackground(theme.chip, dp(17).toFloat()) else null
+        clipButton.background = if (target == Panel.CLIP) roundedBackground(theme.chip, dp(17).toFloat()) else null
     }
 
-    private fun hideLanguagePanel() {
-        if (!::langPanel.isInitialized) return
-        langPanel.visibility = View.GONE
-        keyboard.visibility = View.VISIBLE
+    // ---- emoji panel ----
+
+    private fun buildEmojiPanel() {
+        emojiPanel.removeAllViews()
+        val column = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        val grid = EmojiGridView(this).apply { theme = this@BotikInputMethodService.theme }
+        val scroll = ScrollView(this).apply {
+            isVerticalScrollBarEnabled = false
+            addView(grid)
+        }
+        column.addView(scroll, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
+
+        val recent = prefs.recentEmoji
+        val categories = Emoji.CATEGORIES
+        if (emojiCategory == -1) emojiCategory = if (recent.isEmpty()) 0 else RECENT_CATEGORY
+
+        val tabs = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        val tabViews = ArrayList<TextView>()
+        fun select(index: Int) {
+            emojiCategory = index
+            grid.items = if (index == RECENT_CATEGORY) prefs.recentEmoji else categories[index].items
+            scroll.scrollTo(0, 0)
+            tabViews.forEachIndexed { i, tab ->
+                val tabIndex = if (i == 0) RECENT_CATEGORY else i - 1
+                tab.background = if (tabIndex == index) roundedBackground(theme.keyPressed, dp(14).toFloat()) else null
+            }
+        }
+        val icons = listOf("🕘") + categories.map { it.icon }
+        icons.forEachIndexed { i, icon ->
+            val tab = TextView(this).apply {
+                text = icon
+                gravity = Gravity.CENTER
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f)
+                setOnClickListener { select(if (i == 0) RECENT_CATEGORY else i - 1) }
+            }
+            tabViews += tab
+            tabs.addView(tab, LinearLayout.LayoutParams(dp(42), dp(36)))
+        }
+
+        val bottom = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(4), dp(2), dp(4), dp(4))
+        }
+        bottom.addView(smallKey("АБВ") { showPanel(Panel.KEYS) }, LinearLayout.LayoutParams(dp(52), dp(36)))
+        bottom.addView(
+            HorizontalScrollView(this).apply {
+                isHorizontalScrollBarEnabled = false
+                addView(tabs)
+            },
+            LinearLayout.LayoutParams(0, dp(40), 1f),
+        )
+        bottom.addView(smallKey("⌫") { onDelete() }, LinearLayout.LayoutParams(dp(52), dp(36)))
+        column.addView(bottom)
+
+        grid.onPick = { emoji ->
+            onPressFeedback(Key(emoji))
+            currentInputConnection?.commitText(emoji, 1)
+            prefs.recentEmoji = (listOf(emoji) + prefs.recentEmoji.filter { it != emoji }).take(MAX_RECENT_EMOJI)
+        }
+        select(if (emojiCategory == RECENT_CATEGORY && recent.isEmpty()) 0 else emojiCategory)
+        emojiPanel.setBackgroundColor(theme.backgroundBottom)
+        emojiPanel.addView(column)
+    }
+
+    // ---- clipboard panel ----
+
+    private fun buildClipPanel() {
+        clipPanel.removeAllViews()
+        val column = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+
+        val actions = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(dp(4), dp(4), dp(4), dp(2))
+        }
+        fun action(label: String, block: () -> Unit) {
+            actions.addView(smallKey(label, block), LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, dp(36)).apply {
+                setMargins(dp(2), 0, dp(2), 0)
+            })
+        }
+        action("АБВ") { showPanel(Panel.KEYS) }
+        action(getString(R.string.clip_select_all)) { currentInputConnection?.performContextMenuAction(android.R.id.selectAll) }
+        action(getString(R.string.clip_copy)) { currentInputConnection?.performContextMenuAction(android.R.id.copy) }
+        action(getString(R.string.clip_cut)) { currentInputConnection?.performContextMenuAction(android.R.id.cut) }
+        action(getString(R.string.clip_paste)) { currentInputConnection?.performContextMenuAction(android.R.id.paste) }
+        action(getString(R.string.clip_clear)) {
+            clipboardHistory.clear()
+            buildClipPanel()
+        }
+        column.addView(HorizontalScrollView(this).apply {
+            isHorizontalScrollBarEnabled = false
+            addView(actions)
+        })
+
+        val list = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(6), dp(4), dp(6), dp(6))
+        }
+        val items = clipboardHistory.items()
+        if (!prefs.clipboardHistory || items.isEmpty()) {
+            list.addView(TextView(this).apply {
+                text = getString(if (prefs.clipboardHistory) R.string.clip_empty else R.string.clip_disabled)
+                setTextColor(theme.hint)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+                gravity = Gravity.CENTER
+                setPadding(dp(16), dp(24), dp(16), dp(24))
+            })
+        }
+        if (prefs.clipboardHistory) {
+            for (clip in items) list.addView(clipRow(clip))
+        }
+        column.addView(ScrollView(this).apply { addView(list) }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
+        clipPanel.setBackgroundColor(theme.backgroundBottom)
+        clipPanel.addView(column)
+    }
+
+    private fun clipRow(clip: ClipboardHistory.Clip): View {
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            background = roundedBackground(theme.key, dp(12).toFloat())
+            setPadding(dp(12), dp(8), dp(4), dp(8))
+        }
+        val text = TextView(this).apply {
+            text = (if (clip.pinned) "📌 " else "") + clip.text
+            maxLines = 2
+            ellipsize = TextUtils.TruncateAt.END
+            setTextColor(theme.text)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+        }
+        row.addView(text, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        row.addView(TextView(this).apply {
+            this.text = "✕"
+            gravity = Gravity.CENTER
+            setTextColor(theme.hint)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
+            setOnClickListener {
+                clipboardHistory.remove(clip)
+                buildClipPanel()
+            }
+        }, LinearLayout.LayoutParams(dp(36), dp(36)))
+        row.setOnClickListener {
+            onPressFeedback(Key(clip.text))
+            currentInputConnection?.commitText(clip.text, 1)
+        }
+        row.setOnLongClickListener {
+            onPressFeedback(Key(clip.text))
+            clipboardHistory.togglePin(clip)
+            buildClipPanel()
+            true
+        }
+        return row.also {
+            it.layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+                .apply { setMargins(0, dp(3), 0, dp(3)) }
+        }
+    }
+
+    private fun smallKey(label: String, onClick: () -> Unit) = TextView(this).apply {
+        text = label
+        gravity = Gravity.CENTER
+        maxLines = 1
+        setPadding(dp(12), 0, dp(12), 0)
+        setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+        setTextColor(theme.text)
+        background = roundedBackground(theme.keySpecial, dp(10).toFloat())
+        setOnClickListener {
+            onPressFeedback(Key(label))
+            onClick()
+        }
     }
 
     private fun buildLanguagePanel() {
@@ -541,6 +776,11 @@ class BotikInputMethodService : InputMethodService(), KeyboardView.Listener {
         addLanguageGrid(content, recent)
         content.addView(sectionTitle(getString(R.string.panel_all)))
         addLanguageGrid(content, Languages.ALL)
+
+        content.addView(chip(getString(R.string.open_settings), false) {
+            showPanel(Panel.KEYS)
+            startActivity(Intent(this, SettingsActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(42)).apply { setMargins(dp(3), dp(10), dp(3), dp(3)) })
     }
 
     private fun addLanguageGrid(parent: LinearLayout, languages: List<Language>) {
@@ -560,7 +800,7 @@ class BotikInputMethodService : InputMethodService(), KeyboardView.Listener {
 
     private fun selectTarget(lang: Language) {
         prefs.target = lang
-        hideLanguagePanel()
+        showPanel(Panel.KEYS)
         offered = null
         setBarState(BarState.IDLE)
         scheduleDraft()
@@ -595,6 +835,8 @@ class BotikInputMethodService : InputMethodService(), KeyboardView.Listener {
         root.setBackgroundColor(theme.backgroundBottom)
         bar.setBackgroundColor(theme.backgroundTop)
         langPanel.setBackgroundColor(theme.backgroundBottom)
+        emojiPanel.setBackgroundColor(theme.backgroundBottom)
+        clipPanel.setBackgroundColor(theme.backgroundBottom)
         langChip.background = roundedBackground(theme.chip, dp(17).toFloat())
         langChip.setTextColor(theme.text)
         translateButton.background = accentBackground(dp(18).toFloat())
@@ -622,5 +864,7 @@ class BotikInputMethodService : InputMethodService(), KeyboardView.Listener {
         private const val MAX_CHARS = 5000
         private const val MAX_DRAFT_CHARS = 1500
         private const val DRAFT_DELAY_MS = 350L
+        private const val RECENT_CATEGORY = -2
+        private const val MAX_RECENT_EMOJI = 32
     }
 }

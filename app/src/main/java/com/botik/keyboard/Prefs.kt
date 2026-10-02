@@ -68,7 +68,7 @@ class Prefs(context: Context) {
         get() = raw.getBoolean(KEY_SOUND, false)
         set(v) = raw.edit().putBoolean(KEY_SOUND, v).apply()
 
-    /** "system", "dark" or "light". */
+    /** "system" or a [com.botik.keyboard.ime.KeyboardTheme] id. */
     var theme: String
         get() = raw.getString(KEY_THEME, "system").orEmpty()
         set(v) = raw.edit().putString(KEY_THEME, v).apply()
@@ -76,6 +76,19 @@ class Prefs(context: Context) {
     var keyHeightScale: Float
         get() = raw.getFloat(KEY_HEIGHT, 1f)
         set(v) = raw.edit().putFloat(KEY_HEIGHT, v).apply()
+
+    var numberRow: Boolean
+        get() = raw.getBoolean(KEY_NUMBER_ROW, false)
+        set(v) = raw.edit().putBoolean(KEY_NUMBER_ROW, v).apply()
+
+    var clipboardHistory: Boolean
+        get() = raw.getBoolean(KEY_CLIPBOARD, true)
+        set(v) = raw.edit().putBoolean(KEY_CLIPBOARD, v).apply()
+
+    /** Most recent first. */
+    var recentEmoji: List<String>
+        get() = raw.getString(KEY_EMOJI, "").orEmpty().split(" ").filter { it.isNotEmpty() }
+        set(v) = raw.edit().putString(KEY_EMOJI, v.joinToString(" ")).apply()
 
     /** "ru" or "en" letters layout last used. */
     var letters: String
@@ -98,6 +111,9 @@ class Prefs(context: Context) {
         const val KEY_THEME = "theme"
         const val KEY_HEIGHT = "key_height"
         const val KEY_LETTERS = "letters"
+        const val KEY_NUMBER_ROW = "number_row"
+        const val KEY_CLIPBOARD = "clipboard_history"
+        const val KEY_EMOJI = "recent_emoji"
         private const val MAX_RECENT = 6
     }
 }

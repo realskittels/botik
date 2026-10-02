@@ -39,11 +39,15 @@ class KeyboardView @JvmOverloads constructor(
         fun onCursorMove(steps: Int)
         /** Every key press, for haptics and sound. */
         fun onPressFeedback(key: Key)
+        /** Swipe left from backspace. */
+        fun onDeleteWord()
+        /** Long press on the space bar. */
+        fun onSpaceLongPress()
     }
 
     var listener: Listener? = null
 
-    var theme: KeyboardTheme = KeyboardTheme.DARK
+    var theme: KeyboardTheme = KeyboardTheme.AMETHYST
         set(value) {
             field = value
             rebuildShaders()
@@ -96,13 +100,13 @@ class KeyboardView @JvmOverloads constructor(
     private val density = resources.displayMetrics.density
     private fun dp(v: Float) = v * density
 
-    private val baseRowHeight = dp(54f)
+    private val baseRowHeight = dp(48f)
     private val gapX = dp(3f)
     private val gapY = dp(5f)
     private val padTop = dp(4f)
     private val padBottom = dp(6f)
     private val padSide = dp(3f)
-    private val radius = dp(9f)
+    private val radius = dp(8f)
     private val shadowOffset = dp(1.5f)
 
     private class KeyGeom(val key: Key, val rect: RectF, val hit: RectF) {
@@ -146,6 +150,7 @@ class KeyboardView @JvmOverloads constructor(
     private val pointers = SparseArray<Pointer>()
     private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop
     private val cursorStep = dp(11f)
+    private val deleteSwipe = dp(36f)
     private val longPressDelay = 300L
     private var deleteRepeat: Runnable? = null
 
@@ -247,12 +252,15 @@ class KeyboardView @JvmOverloads constructor(
 
         tmpRect.set(r.left, r.top + shadowOffset, r.right, r.bottom + shadowOffset)
         canvas.drawRoundRect(tmpRect, radius, radius, shadowPaint)
+        // Pressed keys sink onto their shadow, like a physical key.
+        val sink = shadowOffset * press
+        tmpRect.set(r.left, r.top + sink, r.right, r.bottom + sink)
         if (isEnter || (key.type == KeyType.SHIFT && shiftState == ShiftState.LOCKED)) {
             accentPaint.alpha = (255 - 60 * press).toInt()
-            canvas.drawRoundRect(r, radius, radius, accentPaint)
+            canvas.drawRoundRect(tmpRect, radius, radius, accentPaint)
         } else {
             keyPaint.color = blend(base, theme.keyPressed, press)
-            canvas.drawRoundRect(r, radius, radius, keyPaint)
+            canvas.drawRoundRect(tmpRect, radius, radius, keyPaint)
         }
 
         val label = when (key.type) {
@@ -276,7 +284,7 @@ class KeyboardView @JvmOverloads constructor(
             label.length > 2 -> modifierSize * 0.8f
             else -> modifierSize * 1.15f
         }
-        val cy = r.centerY() - (labelPaint.descent() + labelPaint.ascent()) / 2f
+        val cy = r.centerY() + sink - (labelPaint.descent() + labelPaint.ascent()) / 2f
         canvas.drawText(label, r.centerX(), cy, labelPaint)
 
         val alt = key.alt
@@ -393,6 +401,13 @@ class KeyboardView @JvmOverloads constructor(
                     }
                 }
             }
+            KeyType.DELETE -> {
+                if (!p.dragging && p.downX - x > deleteSwipe) {
+                    p.dragging = true
+                    stopDeleteRepeat()
+                    listener?.onDeleteWord()
+                }
+            }
             KeyType.CHAR -> {
                 if (p.consumed || p.altShown != null) return
                 val index = findKey(x, y)
@@ -422,6 +437,16 @@ class KeyboardView @JvmOverloads constructor(
     private fun scheduleLongPress(p: Pointer) {
         cancelLongPress(p)
         val g = geoms.getOrNull(p.index) ?: return
+        if (g.key.type == KeyType.SPACE) {
+            val r = Runnable {
+                if (pointers.get(p.id) !== p || p.dragging) return@Runnable
+                p.consumed = true
+                listener?.onSpaceLongPress()
+            }
+            p.longPress = r
+            postDelayed(r, longPressDelay * 2)
+            return
+        }
         val alt = g.key.alt ?: return
         val r = Runnable {
             if (pointers.get(p.id) !== p || p.consumed) return@Runnable
